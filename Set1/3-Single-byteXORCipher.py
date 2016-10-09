@@ -1,8 +1,5 @@
 import charFreqs
 
-hexString = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
-cText = hexString.decode("hex")
-
 def xor_string_with_byte(t, b):
 	return "".join(chr(ord(tx) ^ b) for tx in t)
 
@@ -24,14 +21,18 @@ def rateString(px):
 			score += freqs[x]
 	return(score)
 
-bestScore = 9999999.0
-bestText = ""
-for x in range(0, 256):
-	pText = xor_string_with_byte(cText, x)
-	score = rateString(pText)
-	print("\n" +str(x) + " : " + str(score) + " : " + pText)
-	if(score < bestScore):
-		bestScore = score
-		bestText = pText
-print(bestText)
-print(bestScore)
+def decipherSingleXOR(sourceText):
+	cText = sourceText.decode("hex")
+	bestScore = 9999999.0
+	bestText = ""
+	for x in range(0, 256):
+		pText = xor_string_with_byte(cText, x)
+		score = rateString(pText)
+		#print("\n" +str(x) + " : " + str(score) + " : " + pText)
+		if(score < bestScore):
+			bestScore = score
+			bestText = pText
+	return(bestText, bestScore)
+
+inputString = raw_input("enter hex encoded ciphertext: ")
+print(decipherSingleXOR(inputString))
