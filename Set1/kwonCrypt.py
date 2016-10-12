@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import charFreqs
 
 def xor(bx, by):
@@ -29,27 +31,30 @@ def decryptSingleXOR(sourceText):
 	bestKey = 0
 	bestPText = ""
 	for x in reversed(range(0, 256)):
-		pText = singleXOR(sourceText, x)
+		pText = singleXOR(sourceText, chr(x))
 		score = rateString(pText)
 		if(score > bestScore):
 			bestScore = score
 			bestKey = x
 			bestPText = pText
-	return bestPText, chr(bestKey), bestScore
+	return bestPText, bestKey
 
 def findSingleXOR(sources):
 	bestScore = -1
 	bestSource = ""
 	bestText = ""
+	bestKey = ""
 
 	for s in sources:
-		text, key, score = decryptSingleXOR(s) 
+		text, key = decryptSingleXOR(s)
+		score = rateString(text)
 		if score > bestScore:
-			bestText = text
-			bestScore = score
 			bestSource = s
+			bestText = text
+			bestKey = key
+			bestScore = score
 
-	return bestSource, bestText, bestScore
+	return bestSource, bestText, bestKey
 
 
 def repeatXOR(plainText, key):
@@ -58,3 +63,32 @@ def repeatXOR(plainText, key):
 		ciphertext += chr(ord(plainText[i]) ^ ord(key[i%len(key)]))
 	return ciphertext
 
+
+def hammingDist(string1, string2):
+	xored = xor(string1, string2)
+	b = "".join(bin(ord(x))[2:] for x in xored)
+	return b.count("1")
+
+def findRepeatKeySize(cText):
+	lowestHam = 99999999	
+	lowestKeySize = 2
+	
+	for k in range(2, 40):
+		#find average hamming distance from dist block to every other block
+		numBlocks = len(cText)/k	
+		ham = sum(float(hammingDist(cText[0:k], cText[i*k:i*k+k])) for i in range(1, numBlocks))
+		ham /= float((numBlocks-1) * k)
+		if ham < lowestHam:
+			lowestHam = ham 
+			lowestKeySize = k
+	return lowestKeySize
+
+def decipherRepeatXOR(cText):
+	keySize = findRepeatKeySize(cText)
+	
+	blocks = [("".join(cText[i*keySize+j] for i in range( len(cText)/keySize-1)) ) for j in range(keySize)]	
+	key = "".join(chr(decryptSingleXOR(b)[1]) for b in blocks)
+	
+	pText = repeatXOR(cText, key)
+
+	return pText, key
