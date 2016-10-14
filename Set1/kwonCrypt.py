@@ -92,3 +92,8 @@ def decipherRepeatXOR(cText):
 	pText = repeatXOR(cText, key)
 
 	return pText, key
+
+def dupeRate(s, u):
+	ps = s[:len(s)-len(s)%u]
+	c = [ps.count(i) for i in [ps[j*u:(j+1)*u] for j in range(0, len(ps)/u)]]
+	return float(max(c))/float(len(ps)/u) 
