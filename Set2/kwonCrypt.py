@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import charFreqs
+from Crypto.Cipher import AES
+from random import random
 
 def xor(bx, by):
 	return "".join(chr(ord(x) ^ ord(y)) for x, y in zip(bx, by))
@@ -93,12 +95,44 @@ def decipherRepeatXOR(cText):
 
 	return pText, key
 
-def dupeRate(s, u):
+def dupeRate(s, u=16):
 	ps = s[:len(s)-len(s)%u]
-	c = [ps.count(i) for i in [ps[j*u:(j+1)*u] for j in range(0, len(ps)/u)]]
-	return float(max(c))/float(len(ps)/u) 
+	c = {i:ps.count(i)-1 for i in [ps[j*u:(j+1)*u] for j in range(0, len(ps)/u)]}
+	return float(sum(c[i] for i in c))/float(len(ps)/u)
 
 def PKCS7(s, l):
 	s = s+ chr(l-len(s))*(l-len(s))
 	return s
 
+def ecbEncrypt(pText, key="FOOD FOR THOUGHT"):
+	cipher = AES.new(key)
+	p = PKCS7(pText, len(pText)+16-(len(pText)%16))	
+	return "".join(cipher.encrypt(p[16*i:16*(i+1)]) for i in range(len(p)/16))
+
+def ecbDecrypt(cText, key="FOOD FOR THOUGHT"):
+	cipher = AES.new(key)
+	return "".join(cipher.decrypt(cText[16*i:16*(i+1)]) for i in range(len(cText)/16))
+
+def cbcEncrypt(pText, key="FOOD FOR THOUGHT", iv=" "*16):
+	cipher = AES.new(key)
+	p = PKCS7(pText, len(pText)+16-(len(pText)%16))
+	c = cipher.encrypt(xor(pText[:16], iv))
+	for i in range(1, len(p)/16):
+		c += cipher.encrypt( xor(c[-16:], p[16*i:16*(i+1)]) ) 
+	return c
+
+def cbcDecrypt(cText, key="FOOD FOR THOUGHT", iv=" "*16):
+	cipher = AES.new(key)
+	p = xor(iv, cipher.decrypt(cText[:16]))
+	return p+"".join(xor(cText[16*(i-1):16*i], cipher.decrypt(cText[16*i:16*(i+1)])) for i in range(1, len(cText)/16))
+	
+def randomKey(l):
+	return "".join(chr(int(random()*256)) for i in range(l))
+
+def detectBlockOracleMode(oracle):
+	testString = "YELLOW SUBMARINE"*200
+	s = oracle(testString)
+	if dupeRate(s)>0.8:
+		return "ECB"
+	else:
+		return "CBC"
